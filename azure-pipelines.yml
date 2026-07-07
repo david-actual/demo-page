@@ -5,8 +5,15 @@ resources:
 - repo: self
 
 variables:
-  tag: '$(Build.BuildId)'
-  imageName: 'demo-page'
+- group: CICD
+- name: appVersion
+  value: $[variables.appVersion]
+  
+parameters:
+- name: tag
+  default: '$(Build.BuildId)'
+- name: imageName
+  default: 'demo-page'
 
 stages:
 - stage: Build
@@ -20,7 +27,17 @@ stages:
     - task: Docker@2
       displayName: Build an image
       inputs:
-        repository: $(imageName)
+        repository: ${{ parameters.imageName }}
         command: build
         dockerfile: '**/Dockerfile'
-        tags: $(tag)
+        tags: ${{ parameters.tag }}
+        arguments: '--build-arg VERSION="$(appVersion)"'
+        containerRegistry: registryConnection
+
+    - task: Docker@2
+      displayName: Push to ACR
+      inputs:
+        command: push
+        containerRegistry: registryConnection
+        repository: ${{ parameters.imageName }}
+        tags: ${{ parameters.tag }}
